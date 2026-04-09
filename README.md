@@ -41,3 +41,5 @@ The **best projects** will be showcased on our website.
 ---
 
 Join us and showcase your work to a wider audience! 🚀
+
+## Note Contributing instructions are in CONTRIBUTING.md
