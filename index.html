@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TANCET iOS 26 Prep</title>
+    <style>
+        /* The vibrant background to make the glass effect visible */
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        /* Animated background mesh effect */
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* The main "Glass" Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            backdrop-filter: blur(20px); /* This creates the blur! */
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 35px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 40px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            color: #333;
+        }
+
+        .category-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        h2 { margin-bottom: 30px; font-weight: 700; }
+
+        /* The Blurry Buttons */
+        .glass-btn {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* The Main Generate Button */
+        .generate-btn {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            margin-top: 30px;
+        }
+
+        .generate-btn:hover { background: rgba(0, 0, 0, 0.9); }
+    </style>
+</head>
+<body>
+    <div class="glass-card">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <span class="category-badge" id="categoryBadge">Welcome!</span>
+            <span class="category-badge" style="background: rgba(255,255,255,0.7);">Score: <span id="scoreText">0</span></span>
+        </div>
+        
+        <h2 id="questionText">Tap below to begin your TANCET prep!</h2>
+        
+        <div id="optionsContainer"></div>
+
+        <div id="explanationBox" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.4); border-radius: 15px; font-size: 0.95em; text-align: left; font-weight: 500;"></div>
+
+        <button class="glass-btn generate-btn" id="actionBtn" onclick="fetchQuestion()">Start Practice</button>
+    </div>
+
+    <script>
+        const questionMemory = [];
+        let currentScore = 0; // NEW: Variable to track the score
+
+        async function fetchQuestion() {
+            const categoryBadge = document.getElementById('categoryBadge');
+            const questionText = document.getElementById('questionText');
+            const optionsContainer = document.getElementById('optionsContainer');
+            const explanationBox = document.getElementById('explanationBox');
+            const actionBtn = document.getElementById('actionBtn');
+
+            // Reset UI for the new question
+            categoryBadge.innerText = "Thinking...";
+            questionText.innerText = "Generating a unique question with AI...";
+            optionsContainer.innerHTML = ""; 
+            explanationBox.style.display = "none"; // Hide explanation
+            actionBtn.style.display = "none"; // Hide the button while playing
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/generate-question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ asked: questionMemory.slice(-10) }) // Increased memory to 10
+                });
+                
+                const data = await response.json();
+                questionMemory.push(data.question_data.text);
+
+                categoryBadge.innerText = data.category.replace('_', ' ');
+                questionText.innerText = data.question_data.text;
+
+                data.question_data.options.forEach(option => {
+                    const btn = document.createElement('button');
+                    btn.className = 'glass-btn';
+                    btn.innerText = option;
+                    
+                    btn.onclick = () => {
+                        // Disable buttons
+                        const allBtns = optionsContainer.getElementsByTagName('button');
+                        for(let b of allBtns) { b.disabled = true; }
+
+                        // Check Answer
+                        if(option === data.question_data.answer) {
+                            btn.style.background = "rgba(76, 175, 80, 0.5)"; 
+                            btn.innerText += " ✅ Correct!";
+                            currentScore += 1; // Increase score
+                            document.getElementById('scoreText').innerText = currentScore;
+                        } else {
+                            btn.style.background = "rgba(244, 67, 54, 0.5)"; 
+                            btn.innerText += " ❌ Wrong!";
+                            
+                            // Highlight correct answer
+                            for(let b of allBtns) {
+                                if(b.innerText === data.question_data.answer) {
+                                    b.style.background = "rgba(76, 175, 80, 0.3)";
+                                    b.style.border = "2px solid rgba(76, 175, 80, 0.8)";
+                                }
+                            }
+                        }
+
+                        // NEW: Show AI Explanation
+                        explanationBox.innerText = "💡 AI Tutor: " + data.question_data.explanation;
+                        explanationBox.style.display = "block";
+
+                        // NEW: Show "Next Question" button
+                        actionBtn.innerText = "Next Question";
+                        actionBtn.style.display = "block";
+                    };
+                    optionsContainer.appendChild(btn);
+                });
+
+            } catch (error) {
+                questionText.innerText = "Error connecting to AI. Check terminal!";
+                console.error(error);
+                actionBtn.style.display = "block";
+            }
+        }
+    </script>
+</body>
+</html>
